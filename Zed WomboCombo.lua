@@ -177,12 +177,14 @@ function Target()
 			if next(ksDamages)~=nil then
 				table.sort(ksDamages, function (a, b) return a<b end)
 				local lowestKSDmg = ksDamages[1]
-				if qdmg == lowestKSDmg then
-					CastQ(Enemy)
-				elseif edmg == lowestKSDmg then
-					CastE(Enemy)
-				elseif rdmg == lowestKSDmg then
-					CastR(Enemy)
+				if not RREADY or rUsed() then
+					if qdmg == lowestKSDmg then
+						CastQ(Enemy)
+					elseif edmg == lowestKSDmg then
+						CastE(Enemy)
+					elseif rdmg == lowestKSDmg then
+						CastR(Enemy)
+					end
 				end
 				table.clear(ksDamages)
 			end
@@ -545,7 +547,7 @@ function orbWalk()
 	end
 end
 
-function OnDraw()
+--[[function OnDraw()
 	if not myHero.dead then
 		if ValidTarget(newTarget) and Config.DrawArrow then
 			DrawArrows(myHero, newTarget, 30, 0x099B2299, 50)
@@ -568,15 +570,10 @@ function OnDraw()
 				else
 					DrawText3D(tostring("Not killable"),Enemy.x,Enemy.y, Enemy.z,16,ARGB(244,66,155,255), true)
 				end
-				-- ARGB(244,66,155,255) blue
-				-- ARGB(255,10,255,20) green
-				-- ARGB(255,248,255,20) yellow
-				-- ARGB(255,255,10,20) red
-				--ARGB(255,255,143,20) orange
 			end
 		end 
 	end
-end
+end]]
 
 function OnProcessSpell(unit, spell)
 	if unit.isMe and spell.name:lower():find("attack") and spell.animationTime then
