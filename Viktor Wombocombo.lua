@@ -47,7 +47,7 @@ function LoadSkillRanges()
 end
 function LoadVIPPrediction()
 	tpE = TargetPredictionVIP(rangeE, 2000, 0.25)
-	tpW = TargetPredictionVIP(rangeW, 2000, 0.25)
+	tpW = TargetPredictionVIP(rangeW, math.huge, 0.7)
 	tpR = TargetPredictionVIP(rangeR, 2000, 0.25)
 end
 function LoadMinions()
@@ -95,13 +95,16 @@ end
 function checkKillRange()
 	if EREADY then
 		killRange = 1225
-	else
+	elseif WREADY or RREADY then
 		killRange = 700
+	else
+		killRange = 600
 	end
 end
 function Target()
 	local currentTarget = nil
 	local killMana = 0
+	local targetSelected = SelectedTarget()
 	if ValidTarget(newTarget) then
 		if GetDistance(newTarget)>killRange then
 			newTarget = nil
@@ -210,11 +213,17 @@ function Target()
 			currentTarget = Enemy
 			if killHim >= currentTarget.health and killMana<= myHero.mana then
 				enemyHeros[i].killable = 3
-				if GetDistance(currentTarget) <= killRange then
+				if GetDistance(currentTarget) <= killRange and not targetSelected then
 					if newTarget == nil then
 						newTarget = currentTarget
-					elseif GetDistance(myHero, newTarget) > GetDistance(myHero, currentTarget) then
+					elseif newTarget.health > killHim then
 						newTarget = currentTarget
+					else
+						local currentTargetDmg = currentTarget.health - killHim
+						local newTargetDmg = newTarget.health - killHim
+						if currentTargetDmg < newTargetDmg then
+							newTarget = currentTarget
+						end
 					end
 					if ValidTarget(newTarget) then
 						killTarget(newTarget)
@@ -222,11 +231,17 @@ function Target()
 				end
 			elseif comboKiller >= currentTarget.health then
 				enemyHeros[i].killable = 2
-				if GetDistance(currentTarget) <= killRange then
+				if GetDistance(currentTarget) <= killRange and not targetSelected then
 					if newTarget == nil then
 						newTarget = currentTarget
-					elseif GetDistance(myHero, newTarget) > GetDistance(myHero, currentTarget) then
+					elseif newTarget.health > comboKiller then
 						newTarget = currentTarget
+					else
+						local currentTargetDmg = currentTarget.health - comboKiller
+						local newTargetDmg = newTarget.health - comboKiller
+						if currentTargetDmg < newTargetDmg then
+							newTarget = currentTarget
+						end
 					end
 					if ValidTarget(newTarget) then
 						comboTarget(newTarget)
@@ -234,11 +249,15 @@ function Target()
 				end
 			else
 				enemyHeros[i].killable = 1
-				if GetDistance(currentTarget) <= killRange then
+				if GetDistance(currentTarget) <= killRange and not targetSelected then
 					if newTarget == nil then
 						newTarget = currentTarget
-					elseif GetDistance(myHero, newTarget) > GetDistance(myHero, currentTarget) then
-						newTarget = currentTarget
+					elseif newTarget.health > comboKiller then
+						local currentTargetDmg = currentTarget.health - comboKiller
+						local newTargetDmg = newTarget.health - comboKiller
+						if currentTargetDmg < newTargetDmg then
+							newTarget = currentTarget
+						end
 					end
 					if ValidTarget(newTarget) then
 						harassTarget(newTarget)
@@ -247,6 +266,15 @@ function Target()
 			end
 		else
 			killable = 0
+		end
+	end
+	if ValidTarget(targetSelected) then
+		newTarget = targetSelected
+		if Config.teamFight then
+			CastItems(newTarget)
+			CastQ(newTarget)
+			CastW(newTarget)
+			CastE(newTarget)
 		end
 	end
 end
@@ -293,6 +321,14 @@ function jungleFarm()
 		end
 	else
 		return
+	end
+end
+function SelectedTarget()
+	local selectedPlayer = GetTarget()
+	if ValidTarget(selectedPlayer) and (selectedPlayer.type =="obj_AI_Minion" or selectedPlayer.type == "obj_AI_Hero") and GetDistance(selectedPlayer)<=killRange then
+		return selectedPlayer
+	else
+		return nil
 	end
 end
 function harassKey()
@@ -385,7 +421,7 @@ function CastR(target)
 	if not RREADY then return end
 	if ValidTarget(target) then
 		if GetDistance(target) <= rangeR and RREADY then
-			local RPos = GetPrediction(target)
+			local RPos = tpR:GetPrediction(target)
 			if RPos then
 				CastSpell(_R, RPos.x, RPos.z)
 			end
@@ -471,6 +507,7 @@ function OnDraw()
 		end
 		if Config.DrawCircles then
 			DrawCircle(myHero.x, myHero.y, myHero.z, killRange, ARGB(87,183,60,244))
+			DrawCircle(myHero.x, myHero.y, myHero.z, rangeW, ARGB(87,183,60,244))
 		end
 		for i = 1, enemyHerosCount do
 			local Enemy = enemyHeros[i].object
@@ -493,7 +530,7 @@ function OnDraw()
 end
 
 function OnProcessSpell(unit, spell)
-	if unit.isMe and spell.name:lower():find("attack") and spell.animationTime then
+	if unit.isMe and unit.valid and spell.name:lower():find("attack") and spell.animationTime then
 		aaTime = GetTickCount() + spell.windUpTime * 1000 - GetLatency() / 2 + 10 + 50
 		NextShot = GetTickCount() + spell.animationTime * 1000
 	end
