@@ -16,15 +16,18 @@ function LoadMenu()
 	Config:addParam("harass", "Harass (X)", SCRIPT_PARAM_ONKEYDOWN, false, 88)
 	Config:addParam("teamFight", "TeamFight (SpaceBar)", SCRIPT_PARAM_ONKEYDOWN, false, 32)
 	Config:addParam("farm", "Farm (Z)", SCRIPT_PARAM_ONKEYTOGGLE, false, 90)
-	Config:addParam("DrawCircles", "Draw Circles", SCRIPT_PARAM_ONOFF, true)
+	--Config:addParam("DrawCircles", "Draw Circles", SCRIPT_PARAM_ONOFF, true)
+	Config:addParam("DrawArrow", "Draw Arrow", SCRIPT_PARAM_ONOFF, true)
 	Config:addParam("drawTargetCircle", "Draw Target Circle", SCRIPT_PARAM_ONOFF, true)
 	Config:addParam("MinionMarker", "Minion Marker", SCRIPT_PARAM_ONOFF, true)
 	Config:addParam("moveToMouse", "Move To Mouse", SCRIPT_PARAM_ONOFF, true)
 	Config:addParam("creeps", "Creeps (J)", SCRIPT_PARAM_ONKEYDOWN, false, 74)
 	Config:addParam("ultAnytime", "Ult Anytime (U)", SCRIPT_PARAM_ONKEYTOGGLE, false, 85)
+	Config:addParam("autoE", "Auto E (T)", SCRIPT_PARAM_ONKEYTOGGLE, true, 84)
 	Config:addParam("UseWHarass", "Use W Harass", SCRIPT_PARAM_ONOFF, true)
+	Config:addParam("UseWTeamfight", "Use W TeamFight", SCRIPT_PARAM_ONOFF, true)
+	Config:permaShow("autoE")
 	Config:permaShow("ultAnytime")
-	Config:permaShow("UseWHarass")
 	Config:permaShow("harass")
 	Config:permaShow("teamFight")
 	Config:permaShow("farm")
@@ -51,8 +54,8 @@ function LoadSkillRanges()
 	killRange = 925
 end
 function LoadVIPPrediction()
-	tpQ = TargetPredictionVIP(rangeQ, 1800, 0.25)
-	tpQC = TargetPredictionVIP(rangeW, 1800, 0.25, 80, obj)
+	tpQ = TargetPredictionVIP(rangeQ, 1600, 0.25)
+	tpQC = TargetPredictionVIP(1500, 1600, 0.25, 80, obj)
 end
 function LoadMinions()
 	enemyMinion = minionManager(MINION_ENEMY, rangeQ, player, MINION_SORT_HEALTH_ASC)
@@ -280,8 +283,10 @@ function Target()
 			if Config.teamFight and not RREADY or rUsed() then
 				CastItems(newTarget, true)
 				CastQ(newTarget)
-				CastW(newTarget)
-				CastW2(newTarget)
+				if Config.UseWTeamfight then
+					CastW(newTarget)
+					CastW2(newTarget)
+				end
 				CastE(newTarget)
 				CastR2(newTarget)
 			elseif Config.teamFight then
@@ -292,11 +297,16 @@ function Target()
 			if Config.teamFight then
 				CastItems(newTarget)
 				CastQ(newTarget)
-				if WQCombo<=myHero.mana then
-					CastW(newTarget)
+				if Config.UseWTeamfight then
+					if WQCombo<=myHero.mana then
+						CastW(newTarget)
+					end
 				end
 				CastE(newTarget)
 			end
+		end
+		if Config.autoE then
+			CastE(newTarget)
 		end
 	end
 end
@@ -371,12 +381,17 @@ function killTarget(target)
 		if Config.teamFight and not RREADY or rUsed() then
 			CastItems(target, true)
 			CastQ(target)
-			CastW(target)
-			CastW2(target)
+			if Config.UseWTeamfight then
+				CastW(target)
+				CastW2(target)
+			end
 			CastE(target)
 			CastR2(target)
 		elseif Config.teamFight then
 			CastR(target)
+		end
+		if Config.autoE then
+			CastE(target)
 		end
 	end
 end
@@ -385,12 +400,17 @@ function comboTarget(target)
 		if Config.teamFight and not RREADY or rUsed() then
 			CastItems(target, true)
 			CastQ(target)
-			CastW(target)
-			CastW2(target)
+			if Config.UseWTeamfight then
+				CastW(target)
+				CastW2(target)
+			end
 			CastE(target)
 			CastR2(target)
 		elseif Config.teamFight then
 			CastR(target)
+		end
+		if Config.autoE then
+			CastE(target)
 		end
 	end
 end
@@ -400,8 +420,10 @@ function harassTarget(target)
 			if Config.teamFight and not RREADY or rUsed() then
 				CastItems(target, true)
 				CastQ(target)
-				CastW(target)
-				CastW2(target)
+				if Config.UseWTeamfight then
+					CastW(target)
+					CastW2(target)
+				end
 				CastE(target)
 				CastR2(target)
 			elseif Config.teamFight then
@@ -412,11 +434,16 @@ function harassTarget(target)
 			if Config.teamFight then
 				CastItems(target)
 				CastQ(target)
-				if WQCombo<=myHero.mana then
-					CastW(target)
+				if Config.UseWTeamfight then
+					if WQCombo<=myHero.mana then
+						CastW(target)
+					end
 				end
 				CastE(target)
 			end
+		end
+		if Config.autoE then
+			CastE(target)
 		end
 	end
 end
@@ -606,9 +633,11 @@ end
 
 function OnDraw()
 	if not myHero.dead then
-		if ValidTarget(newTarget) and Config.drawTargetCircle then
-			DrawCircle(newTarget.x, newTarget.y, newTarget.z, 90, ARGB(244,66,155,255))
+		if ValidTarget(newTarget) and Config.DrawArrow then
+			--DrawCircle(newTarget.x, newTarget.y, newTarget.z, 90, ARGB(244,66,155,255))
+			DrawArrows(myHero, newTarget, 30, 0x099B2299, 50)
 		end
+		OutputDebugString('dab')
 		if Config.DrawCircles then
 			DrawCircle(myHero.x, myHero.y, myHero.z, killRange, ARGB(87,183,60,244))
 		end
