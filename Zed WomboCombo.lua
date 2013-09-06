@@ -9,24 +9,26 @@ function OnLoad()
 	LoadEnemies()
 end
 function OnUnload()
-	PrintFloatText(myHero,2,"Zed WomboCombo v1.3.5 UnLoaded!")
+	PrintFloatText(myHero,2,"Zed WomboCombo UnLoaded!")
 end
 function LoadMenu()
-	Config = scriptConfig("Zed WomboCombo 1.3.5", " WomboCombo")
+	Config = scriptConfig("Zed WomboCombo", " WomboCombo")
 	Config:addParam("harass", "Harass (X)", SCRIPT_PARAM_ONKEYDOWN, false, 88)
 	Config:addParam("teamFight", "TeamFight (SpaceBar)", SCRIPT_PARAM_ONKEYDOWN, false, 32)
 	Config:addParam("farm", "Farm (Z)", SCRIPT_PARAM_ONKEYTOGGLE, false, 90)
 	Config:addParam("DrawCircles", "Draw Circles", SCRIPT_PARAM_ONOFF, true)
-	Config:addParam("DrawArrow", "Draw Arrow", SCRIPT_PARAM_ONOFF, true)
+	Config:addParam("drawTargetCircle", "Draw Target Circle", SCRIPT_PARAM_ONOFF, true)
 	Config:addParam("MinionMarker", "Minion Marker", SCRIPT_PARAM_ONOFF, true)
 	Config:addParam("moveToMouse", "Move To Mouse", SCRIPT_PARAM_ONOFF, true)
 	Config:addParam("creeps", "Creeps (J)", SCRIPT_PARAM_ONKEYDOWN, false, 74)
 	Config:addParam("ultAnytime", "Ult Anytime (U)", SCRIPT_PARAM_ONKEYTOGGLE, false, 85)
+	Config:addParam("UseWHarass", "Use W Harass", SCRIPT_PARAM_ONOFF, true)
 	Config:permaShow("ultAnytime")
+	Config:permaShow("UseWHarass")
 	Config:permaShow("harass")
 	Config:permaShow("teamFight")
 	Config:permaShow("farm")
-	PrintFloatText(myHero,2,"Zed WomboCombo v1.3.5 Loaded!")
+	PrintFloatText(myHero,2,"Zed WomboCombo Loaded!")
 end
 function LoadVariables()
 	ignite = nil
@@ -54,7 +56,7 @@ function LoadVIPPrediction()
 end
 function LoadMinions()
 	enemyMinion = minionManager(MINION_ENEMY, rangeQ, player, MINION_SORT_HEALTH_ASC)
-	jungleMinion = minionManager(MINION_JUNGLE, rangeQ, player, MINION_SORT_HEALTH_ASC)
+	jungleMinion = minionManager(MINION_JUNGLE, rangeQ, player, MINION_SORT_MAXHEALTH_DEC)
 end
 function LoadSummonerSpells()
 	if myHero:GetSpellData(SUMMONER_1).name:find("SummonerDot") then 
@@ -108,6 +110,7 @@ end
 function Target()
 	local currentTarget = nil
 	local killMana = 0
+	local targetSelected = SelectedTarget()
 	if ValidTarget(newTarget) then
 		if GetDistance(newTarget)>killRange then
 			newTarget = nil
@@ -207,11 +210,17 @@ function Target()
 			currentTarget = Enemy
 			if killHim >= currentTarget.health and killMana<= myHero.mana then
 				enemyHeros[i].killable = 3
-				if GetDistance(currentTarget) <= killRange then
+				if GetDistance(currentTarget) <= killRange and not targetSelected then
 					if newTarget == nil then
 						newTarget = currentTarget
-					elseif GetDistance(myHero, newTarget) > GetDistance(myHero, currentTarget) then
+					elseif newTarget.health > killHim then
 						newTarget = currentTarget
+					else
+						local currentTargetDmg = currentTarget.health - killHim
+						local newTargetDmg = newTarget.health - killHim
+						if currentTargetDmg < newTargetDmg then
+							newTarget = currentTarget
+						end
 					end
 					if ValidTarget(newTarget) then
 						killTarget(newTarget)
@@ -219,11 +228,17 @@ function Target()
 				end
 			elseif comboKiller >= currentTarget.health then
 				enemyHeros[i].killable = 2
-				if GetDistance(currentTarget) <= killRange then
+				if GetDistance(currentTarget) <= killRange and not targetSelected then
 					if newTarget == nil then
 						newTarget = currentTarget
-					elseif GetDistance(myHero, newTarget) > GetDistance(myHero, currentTarget) then
+					elseif newTarget.health > comboKiller then
 						newTarget = currentTarget
+					else
+						local currentTargetDmg = currentTarget.health - comboKiller
+						local newTargetDmg = newTarget.health - comboKiller
+						if currentTargetDmg < newTargetDmg then
+							newTarget = currentTarget
+						end
 					end
 					if ValidTarget(newTarget) then
 						comboTarget(newTarget)
@@ -231,11 +246,15 @@ function Target()
 				end
 			else
 				enemyHeros[i].killable = 1
-				if GetDistance(currentTarget) <= killRange then
+				if GetDistance(currentTarget) <= killRange and not targetSelected then
 					if newTarget == nil then
 						newTarget = currentTarget
-					elseif GetDistance(myHero, newTarget) > GetDistance(myHero, currentTarget) then
-						newTarget = currentTarget
+					elseif newTarget.health > comboKiller then
+						local currentTargetDmg = currentTarget.health - comboKiller
+						local newTargetDmg = newTarget.health - comboKiller
+						if currentTargetDmg < newTargetDmg then
+							newTarget = currentTarget
+						end
 					end
 					if ValidTarget(newTarget) then
 						harassTarget(newTarget)
@@ -253,6 +272,31 @@ function Target()
 			end
 		else
 			killable = 0
+		end
+	end
+	if ValidTarget(targetSelected) then
+		newTarget = targetSelected
+		if Config.ultAnytime then
+			if Config.teamFight and not RREADY or rUsed() then
+				CastItems(newTarget, true)
+				CastQ(newTarget)
+				CastW(newTarget)
+				CastW2(newTarget)
+				CastE(newTarget)
+				CastR2(newTarget)
+			elseif Config.teamFight then
+				CastR(newTarget)
+			end
+		else
+			local WQCombo = myHero:GetSpellData(_Q).mana + myHero:GetSpellData(_W).mana
+			if Config.teamFight then
+				CastItems(newTarget)
+				CastQ(newTarget)
+				if WQCombo<=myHero.mana then
+					CastW(newTarget)
+				end
+				CastE(newTarget)
+			end
 		end
 	end
 end
@@ -301,10 +345,23 @@ function jungleFarm()
 		return
 	end
 end
+function SelectedTarget()
+	local selectedPlayer = GetTarget()
+	if ValidTarget(selectedPlayer) and (selectedPlayer.type =="obj_AI_Minion" or selectedPlayer.type == "obj_AI_Hero") and GetDistance(selectedPlayer)<=killRange then
+		return selectedPlayer
+	else
+		return nil
+	end
+end
 function harassKey()
 	if ValidTarget(newTarget) then
-		if Config.harass then
-			CastW(newTarget)
+		if Config.UseWHarass then
+			local WQCombo = myHero:GetSpellData(_Q).mana + myHero:GetSpellData(_W).mana
+			if WQCombo<=myHero.mana then
+				CastW(newTarget)
+				CastQ(newTarget)
+			end
+		else
 			CastQ(newTarget)
 		end
 	end
@@ -547,10 +604,10 @@ function orbWalk()
 	end
 end
 
---[[function OnDraw()
+function OnDraw()
 	if not myHero.dead then
-		if ValidTarget(newTarget) and Config.DrawArrow then
-			DrawArrows(myHero, newTarget, 30, 0x099B2299, 50)
+		if ValidTarget(newTarget) and Config.drawTargetCircle then
+			DrawCircle(newTarget.x, newTarget.y, newTarget.z, 90, ARGB(244,66,155,255))
 		end
 		if Config.DrawCircles then
 			DrawCircle(myHero.x, myHero.y, myHero.z, killRange, ARGB(87,183,60,244))
@@ -573,10 +630,10 @@ end
 			end
 		end 
 	end
-end]]
+end
 
 function OnProcessSpell(unit, spell)
-	if unit.isMe and spell.name:lower():find("attack") and spell.animationTime then
+	if unit.isMe and unit.valid and spell.name:lower():find("attack") and spell.animationTime then
 		aaTime = GetTickCount() + spell.windUpTime * 1000 - GetLatency() / 2 + 10 + 50
 		NextShot = GetTickCount() + spell.animationTime * 1000
 	end
