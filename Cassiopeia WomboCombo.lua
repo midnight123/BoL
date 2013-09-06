@@ -9,18 +9,19 @@ function OnLoad()
 	LoadEnemies()
 end
 function OnUnload()
-	PrintFloatText(myHero,2,"Cassiopeia WomboCombo v1.2.9 UnLoaded!")
+	PrintFloatText(myHero,2,"Cassiopeia WomboCombo UnLoaded!")
 end
 function LoadMenu()
-	Config = scriptConfig("Cassiopeia WomboCombo 1.2.9", "Cassiopeia WomboCombo")
+	Config = scriptConfig("Cassiopeia WomboCombo", "Cassiopeia WomboCombo")
 	Config:addParam("harass", "Harass (X)", SCRIPT_PARAM_ONKEYDOWN, false, 88)
 	Config:addParam("teamFight", "TeamFight (SpaceBar)", SCRIPT_PARAM_ONKEYDOWN, false, 32)
 	Config:addParam("farm", "Farm (Z)", SCRIPT_PARAM_ONKEYTOGGLE, false, 90)
 	Config:addParam("DrawCircles", "Draw Circles", SCRIPT_PARAM_ONOFF, true)
-	Config:addParam("DrawArrow", "Draw Arrow", SCRIPT_PARAM_ONOFF, true)
+	Config:addParam("drawTargetCircle", "Draw Target Circle", SCRIPT_PARAM_ONOFF, true)
 	Config:addParam("MinionMarker", "Minion Marker", SCRIPT_PARAM_ONOFF, true)
 	Config:addParam("moveToMouse", "Move To Mouse", SCRIPT_PARAM_ONOFF, true)
 	Config:addParam("autoE", "Auto E (M)", SCRIPT_PARAM_ONKEYTOGGLE, true, 77)
+	Config:addParam("castUlt", "Cast Ult (R)", SCRIPT_PARAM_ONKEYDOWN, false, 82)
 	Config:addParam("useUltKillable", "Use Ult 'killHim' (U)", SCRIPT_PARAM_ONKEYTOGGLE, true, 85)
 	Config:addParam("creeps", "Creeps (J)", SCRIPT_PARAM_ONKEYDOWN, false, 74)
 	Config:addParam("setUltEnemies", "No. Enemies facing", SCRIPT_PARAM_SLICE, 1, 1, 6, 0)
@@ -30,7 +31,7 @@ function LoadMenu()
 	Config:permaShow("harass")
 	Config:permaShow("teamFight")
 	Config:permaShow("farm")
-	PrintFloatText(myHero,2,"Cassiopeia WomboCombo v1.2.9 Loaded!")
+	PrintFloatText(myHero,2,"Cassiopeia WomboCombo Loaded!")
 end
 function LoadVariables()
 	ignite = nil
@@ -44,13 +45,14 @@ function LoadVariables()
 	wTick = 0
 	ksDamages = {}
 	newTarget = nil
+	allowR = false
 end
 function LoadSkillRanges()
 	rangeQ = 925
-	rangeW = 950
+	rangeW = 925
 	rangeE = 700
 	rangeR = 750
-	killRange = 950
+	killRange = 925
 end
 function LoadVIPPrediction()
 	tpQ = TargetPredictionVIP(rangeQ, math.huge, 0.6)
@@ -59,7 +61,7 @@ function LoadVIPPrediction()
 end
 function LoadMinions()
 	enemyMinion = minionManager(MINION_ENEMY, rangeQ, player, MINION_SORT_HEALTH_ASC)
-	jungleMinion = minionManager(MINION_JUNGLE, rangeQ, player, MINION_SORT_HEALTH_ASC)
+	jungleMinion = minionManager(MINION_JUNGLE, rangeQ, player, MINION_SORT_MAXHEALTH_DEC)
 end
 function LoadSummonerSpells()
 	if myHero:GetSpellData(SUMMONER_1).name:find("SummonerDot") then 
@@ -97,12 +99,16 @@ function OnTick()
 		if Config.harass then
 			harassKey()
 		end
+		if Config.castUlt then
+			if ValidTarget(newTarget) and newTarget.type == "obj_AI_Hero" then
+				CastR(newTarget)
+			end
+		end
 	end
 end
 function checkKillRange()
-	--ADD killRange here
 	if WREADY then
-		killRange = 950
+		killRange = 925
 	elseif QREADY then
 		killRange = 925
 	else
@@ -113,6 +119,7 @@ function Target()
 	local currentTarget = nil
 	local killMana = 0
 	local facing = 0
+	local targetSelected = SelectedTarget() 
 	if ValidTarget(newTarget) then
 		if GetDistance(newTarget)>killRange then
 			newTarget = nil
@@ -223,11 +230,17 @@ function Target()
 			currentTarget = Enemy
 			if killHim >= currentTarget.health and killMana<= myHero.mana then
 				enemyHeros[i].killable = 3
-				if GetDistance(currentTarget) <= killRange then
+				if GetDistance(currentTarget) <= killRange and not targetSelected then
 					if newTarget == nil then
 						newTarget = currentTarget
-					elseif GetDistance(myHero, newTarget) > GetDistance(myHero, currentTarget) then
+					elseif newTarget.health > killHim then
 						newTarget = currentTarget
+					else
+						local currentTargetDmg = currentTarget.health - killHim
+						local newTargetDmg = newTarget.health - killHim
+						if currentTargetDmg < newTargetDmg then
+							newTarget = currentTarget
+						end
 					end
 					if ValidTarget(newTarget) then
 						killTarget(newTarget)
@@ -235,11 +248,17 @@ function Target()
 				end
 			elseif comboKiller >= currentTarget.health then
 				enemyHeros[i].killable = 2
-				if GetDistance(currentTarget) <= killRange then
+				if GetDistance(currentTarget) <= killRange and not targetSelected then
 					if newTarget == nil then
 						newTarget = currentTarget
-					elseif GetDistance(myHero, newTarget) > GetDistance(myHero, currentTarget) then
+					elseif newTarget.health > comboKiller then
 						newTarget = currentTarget
+					else
+						local currentTargetDmg = currentTarget.health - comboKiller
+						local newTargetDmg = newTarget.health - comboKiller
+						if currentTargetDmg < newTargetDmg then
+							newTarget = currentTarget
+						end
 					end
 					if ValidTarget(newTarget) then
 						comboTarget(newTarget)
@@ -247,11 +266,15 @@ function Target()
 				end
 			else
 				enemyHeros[i].killable = 1
-				if GetDistance(currentTarget) <= killRange then
+				if GetDistance(currentTarget) <= killRange and not targetSelected then
 					if newTarget == nil then
 						newTarget = currentTarget
-					elseif GetDistance(myHero, newTarget) > GetDistance(myHero, currentTarget) then
-						newTarget = currentTarget
+					elseif newTarget.health > comboKiller then
+						local currentTargetDmg = currentTarget.health - comboKiller
+						local newTargetDmg = newTarget.health - comboKiller
+						if currentTargetDmg < newTargetDmg then
+							newTarget = currentTarget
+						end
 					end
 					if ValidTarget(newTarget) then
 						harassTarget(newTarget)
@@ -260,15 +283,13 @@ function Target()
 			end
 			local rCount = CountEnemyHeroInRange(killRange)
 			if rCount >= 1 then
-				if GetDistance(Enemy)<=killRange then
+				if GetDistance(Enemy)<=killRange and not targetSelected then
 					RPos = tpR:GetPrediction(Enemy)
 					if RPos then
 						if GetDistance(RPos)<GetDistance(Enemy) then
 							facing = facing + 1
 							if facing>= Config.setUltEnemies then
-								if GetDistance(Enemy)<=rangeR then
-									CastSpell(_R, Enemy.x, Enemy.z)
-								end
+								CastR(Enemy)
 							end
 						end
 						
@@ -277,6 +298,21 @@ function Target()
 			end
 		else
 			killable = 0
+		end
+	end
+	if ValidTarget(targetSelected) then
+		newTarget = targetSelected
+		if Config.autoE then 
+			CastE(newTarget)
+		else
+			if Config.teamFight then
+				CastE(newTarget)
+			end
+		end
+		if Config.teamFight then
+			CastItems(newTarget, true)
+			CastQ(newTarget)
+			CastW(newTarget)
 		end
 	end
 end
@@ -316,13 +352,31 @@ function jungleFarm()
 					if Config.creeps then
 						CastQ(minion)
 						CastW(minion)
-						CastE(minion)
+						CastE(minion)	
 					end
 				end
 			end
 		end
 	else
 		return
+	end
+end
+function SelectedTarget()
+	local selectedPlayer = GetTarget()
+	if ValidTarget(selectedPlayer) and (selectedPlayer.type =="obj_AI_Minion" or selectedPlayer.type == "obj_AI_Hero") and GetDistance(selectedPlayer)<=killRange then
+		return selectedPlayer
+	else
+		return nil
+	end
+end
+function OnSendPacket(p)
+	local packet = Packet(p)
+	if packet:get('name') == 'S_CAST' then
+		if packet:get('spellId') == _R then
+			if not allowR then
+				packet:block()
+			end
+		end
 	end
 end
 function harassKey()
@@ -432,7 +486,9 @@ function CastR(target)
 		if GetDistance(target) <= rangeR and RREADY then
 			local RPos = tpR:GetPrediction(target)
 			if RPos and GetDistance(RPos)<=rangeR then
+				allowR = true
 				CastSpell(_R, RPos.x, RPos.z)
+				allowR = false
 			end
 		end
 	else
@@ -511,8 +567,8 @@ function orbWalk()
 end
 function OnDraw()
 	if not myHero.dead then
-		if ValidTarget(newTarget) and Config.DrawArrow then
-			DrawArrows(myHero, newTarget, 30, 0x099B2299, 50)
+		if ValidTarget(newTarget) and Config.drawTargetCircle then
+			DrawCircle(newTarget.x, newTarget.y, newTarget.z, 90, ARGB(244,66,155,255))
 		end
 		if Config.DrawCircles then
 			DrawCircle(myHero.x, myHero.y, myHero.z, killRange, ARGB(87,183,60,244))
@@ -538,7 +594,7 @@ function OnDraw()
 end
 
 function OnProcessSpell(unit, spell)
-	if unit.isMe and spell.name:lower():find("attack") and spell.animationTime then
+	if unit.isMe and unit.valid and spell.name:lower():find("attack") and spell.animationTime then
 		aaTime = GetTickCount() + spell.windUpTime * 1000 - GetLatency() / 2 + 10 + 50
 		NextShot = GetTickCount() + spell.animationTime * 1000
 	end
