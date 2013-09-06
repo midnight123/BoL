@@ -9,10 +9,10 @@ function OnLoad()
 	LoadEnemies()
 end
 function OnUnload()
-	PrintFloatText(myHero,2,"Syndra WomboCombo v1.6.4 UnLoaded!")
+	PrintFloatText(myHero,2,"Syndra WomboCombo UnLoaded!")
 end
 function LoadMenu()
-	Config = scriptConfig("Syndra WomboCombo 1.6.4", "Syndra WomboCombo")
+	Config = scriptConfig("Syndra WomboCombo", "Syndra WomboCombo")
 	Config:addParam("stunCombo", "Stun Combo (X)", SCRIPT_PARAM_ONKEYDOWN, false, 88)
 	Config:addParam("teamFight", "TeamFight (SpaceBar)", SCRIPT_PARAM_ONKEYDOWN, false, 32)
 	Config:addParam("farm", "Farm (Z)", SCRIPT_PARAM_ONKEYTOGGLE, false, 90)
@@ -24,7 +24,7 @@ function LoadMenu()
 	Config:permaShow("stunCombo")
 	Config:permaShow("teamFight")
 	Config:permaShow("farm")
-	PrintFloatText(myHero,2,"Syndra WomboCombo v1.6.4 Loaded!")
+	PrintFloatText(myHero,2,"Syndra WomboCombo Loaded!")
 end
 function LoadVariables()
 	ignite = nil
@@ -113,6 +113,7 @@ end
 function Target()
 	local currentTarget = nil
 	local killMana = 0
+	local targetSelected = SelectedTarget()
 	if ValidTarget(newTarget) then
 		if GetDistance(newTarget)>killRange then
 			newTarget = nil
@@ -229,11 +230,17 @@ function Target()
 			currentTarget = Enemy
 			if killHim >= currentTarget.health and killMana<= myHero.mana then
 				enemyHeros[i].killable = 3
-				if GetDistance(currentTarget) <= killRange then
+				if GetDistance(currentTarget) <= killRange and not targetSelected then
 					if newTarget == nil then
 						newTarget = currentTarget
-					elseif GetDistance(myHero, newTarget) > GetDistance(myHero, currentTarget) then
+					elseif newTarget.health > killHim then
 						newTarget = currentTarget
+					else
+						local currentTargetDmg = currentTarget.health - killHim
+						local newTargetDmg = newTarget.health - killHim
+						if currentTargetDmg < newTargetDmg then
+							newTarget = currentTarget
+						end
 					end
 					if ValidTarget(newTarget) then
 						killTarget(newTarget)
@@ -241,11 +248,17 @@ function Target()
 				end
 			elseif comboKiller >= currentTarget.health then
 				enemyHeros[i].killable = 2
-				if GetDistance(currentTarget) <= killRange then
+				if GetDistance(currentTarget) <= killRange and not targetSelected then
 					if newTarget == nil then
 						newTarget = currentTarget
-					elseif GetDistance(myHero, newTarget) > GetDistance(myHero, currentTarget) then
+					elseif newTarget.health > comboKiller then
 						newTarget = currentTarget
+					else
+						local currentTargetDmg = currentTarget.health - comboKiller
+						local newTargetDmg = newTarget.health - comboKiller
+						if currentTargetDmg < newTargetDmg then
+							newTarget = currentTarget
+						end
 					end
 					if ValidTarget(newTarget) then
 						comboTarget(newTarget)
@@ -253,11 +266,15 @@ function Target()
 				end
 			else
 				enemyHeros[i].killable = 1
-				if GetDistance(currentTarget) <= killRange then
+				if GetDistance(currentTarget) <= killRange and not targetSelected then
 					if newTarget == nil then
 						newTarget = currentTarget
-					elseif GetDistance(myHero, newTarget) > GetDistance(myHero, currentTarget) then
-						newTarget = currentTarget
+					elseif newTarget.health > comboKiller then
+						local currentTargetDmg = currentTarget.health - comboKiller
+						local newTargetDmg = newTarget.health - comboKiller
+						if currentTargetDmg < newTargetDmg then
+							newTarget = currentTarget
+						end
 					end
 					if ValidTarget(newTarget) then
 						harassTarget(newTarget)
@@ -266,6 +283,15 @@ function Target()
 			end
 		else
 			killable = 0
+		end
+	end
+	if ValidTarget(targetSelected) then
+		newTarget = targetSelected
+		if Config.teamFight then
+			CastItems(target, true)
+			CastE(target)
+			CastQ(target)
+			CastW(target)
 		end
 	end
 end
@@ -316,6 +342,14 @@ function jungleFarm()
 		end
 	else
 		return
+	end
+end
+function SelectedTarget()
+	local selectedPlayer = GetTarget()
+	if ValidTarget(selectedPlayer) and (selectedPlayer.type =="obj_AI_Minion" or selectedPlayer.type == "obj_AI_Hero") and GetDistance(selectedPlayer)<=killRange then
+		return selectedPlayer
+	else
+		return nil
 	end
 end
 function removeOrbs()
@@ -697,7 +731,7 @@ function OnDraw()
 end
 
 function OnProcessSpell(unit, spell)
-	if unit.isMe and spell.name:lower():find("attack") and spell.animationTime then
+	if unit.isMe and unit.valid and spell.name:lower():find("attack") and spell.animationTime then
 		aaTime = GetTickCount() + spell.windUpTime * 1000 - GetLatency() / 2 + 10 + 50
 		NextShot = GetTickCount() + spell.animationTime * 1000
 	end
