@@ -507,7 +507,6 @@ function OnDraw()
 		end
 		if Config.DrawCircles then
 			DrawCircle(myHero.x, myHero.y, myHero.z, killRange, ARGB(87,183,60,244))
-			DrawCircle(myHero.x, myHero.y, myHero.z, rangeW, ARGB(87,183,60,244))
 		end
 		for i = 1, enemyHerosCount do
 			local Enemy = enemyHeros[i].object
