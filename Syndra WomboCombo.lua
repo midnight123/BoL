@@ -21,6 +21,8 @@ function LoadMenu()
 	Config:addParam("MinionMarker", "Minion Marker", SCRIPT_PARAM_ONOFF, true)
 	Config:addParam("moveToMouse", "Move To Mouse", SCRIPT_PARAM_ONOFF, true)
 	Config:addParam("creeps", "Creeps (J)", SCRIPT_PARAM_ONKEYDOWN, false, 74)
+	Config:addParam("harass", "Harass (T)", SCRIPT_PARAM_ONKEYDOWN, false, 84)
+	Config:permaShow("harass")
 	Config:permaShow("stunCombo")
 	Config:permaShow("teamFight")
 	Config:permaShow("farm")
@@ -89,8 +91,11 @@ function OnTick()
 		execute()
 		orbWalk()
 		jungleFarm()
-		if Config.farm and not Config.teamFight and not Config.stunCombo then
+		if Config.farm and not Config.teamFight and not Config.stunCombo and not Config.harass then
 			farmKey()
+		end
+		if Config.harass then
+			harassKey()
 		end
 		if Config.stunCombo then
 			stunComboKey()
@@ -288,10 +293,10 @@ function Target()
 	if ValidTarget(targetSelected) then
 		newTarget = targetSelected
 		if Config.teamFight then
-			CastItems(target, true)
-			CastE(target)
-			CastQ(target)
-			CastW(target)
+			CastItems(newTarget, true)
+			CastE(newTarget)
+			CastQ(newTarget)
+			CastW(newTarget)
 		end
 	end
 end
@@ -360,6 +365,11 @@ function removeOrbs()
 				orbCount = orbCount - 1
 			end
 		end
+	end
+end
+function harassKey()
+	if ValidTarget(newTarget) then
+		CastQ(newTarget)
 	end
 end
 function stunComboKey()
