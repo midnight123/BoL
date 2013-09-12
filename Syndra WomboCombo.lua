@@ -21,8 +21,6 @@ function LoadMenu()
 	Config:addParam("MinionMarker", "Minion Marker", SCRIPT_PARAM_ONOFF, true)
 	Config:addParam("moveToMouse", "Move To Mouse", SCRIPT_PARAM_ONOFF, true)
 	Config:addParam("creeps", "Creeps (J)", SCRIPT_PARAM_ONKEYDOWN, false, 74)
-	Config:addParam("harass", "Harass (T)", SCRIPT_PARAM_ONKEYDOWN, false, 84)
-	Config:permaShow("harass")
 	Config:permaShow("stunCombo")
 	Config:permaShow("teamFight")
 	Config:permaShow("farm")
@@ -57,7 +55,7 @@ function LoadVIPPrediction()
 	tpS = TargetPredictionVIP(1350, 2000, 0.25)
 end
 function LoadMinions()
-	enemyMinion = minionManager(MINION_ENEMY, rangeQ, player, MINION_SORT_HEALTH_ASC)
+	enemyMinion = minionManager(MINION_ENEMY, rangeW, player, MINION_SORT_HEALTH_ASC)
 	jungleMinion = minionManager(MINION_JUNGLE, rangeQ, player, MINION_SORT_HEALTH_ASC)
 end
 function LoadSummonerSpells()
@@ -91,11 +89,8 @@ function OnTick()
 		execute()
 		orbWalk()
 		jungleFarm()
-		if Config.farm and not Config.teamFight and not Config.stunCombo and not Config.harass then
+		if Config.farm and not Config.teamFight and not Config.stunCombo then
 			farmKey()
-		end
-		if Config.harass then
-			harassKey()
 		end
 		if Config.stunCombo then
 			stunComboKey()
@@ -118,7 +113,6 @@ end
 function Target()
 	local currentTarget = nil
 	local killMana = 0
-	local targetSelected = SelectedTarget()
 	if ValidTarget(newTarget) then
 		if GetDistance(newTarget)>killRange then
 			newTarget = nil
@@ -169,6 +163,7 @@ function Target()
 					killHim = killHim + wdmg
 					if wdmg >=Enemy.health and not IsIgnited() and wUsed() then
 						table.insert(ksDamages, wdmg)
+						orbTick = GetTickCount()
 					end
 				end
 			end
@@ -178,7 +173,7 @@ function Target()
 					killHim = killHim + edmg
 					if edmg>=Enemy.health and not IsIgnited() then
 						table.insert(ksDamages, edmg)
-						orbTick = GetTickCount()
+						
 					end
 				end
 			end
@@ -235,7 +230,7 @@ function Target()
 			currentTarget = Enemy
 			if killHim >= currentTarget.health and killMana<= myHero.mana then
 				enemyHeros[i].killable = 3
-				if GetDistance(currentTarget) <= killRange and not targetSelected then
+				if GetDistance(currentTarget) <= killRange then
 					if newTarget == nil then
 						newTarget = currentTarget
 					elseif newTarget.health > killHim then
@@ -253,7 +248,7 @@ function Target()
 				end
 			elseif comboKiller >= currentTarget.health then
 				enemyHeros[i].killable = 2
-				if GetDistance(currentTarget) <= killRange and not targetSelected then
+				if GetDistance(currentTarget) <= killRange then
 					if newTarget == nil then
 						newTarget = currentTarget
 					elseif newTarget.health > comboKiller then
@@ -271,7 +266,7 @@ function Target()
 				end
 			else
 				enemyHeros[i].killable = 1
-				if GetDistance(currentTarget) <= killRange and not targetSelected then
+				if GetDistance(currentTarget) <= killRange then
 					if newTarget == nil then
 						newTarget = currentTarget
 					elseif newTarget.health > comboKiller then
@@ -288,15 +283,6 @@ function Target()
 			end
 		else
 			killable = 0
-		end
-	end
-	if ValidTarget(targetSelected) then
-		newTarget = targetSelected
-		if Config.teamFight then
-			CastItems(newTarget, true)
-			CastE(newTarget)
-			CastQ(newTarget)
-			CastW(newTarget)
 		end
 	end
 end
@@ -316,17 +302,24 @@ function farmKey()
 	enemyMinion:update()
 	if next(enemyMinion.objects)~= nil then
 		for j, minion in pairs(enemyMinion.objects) do
-			if minion.valid then
-				local qDmg = getDmg("Q", minion, myHero, 3)
+			if minion.valid then	
 				if GetDistance(minion)<=myHero.range +65 then
 					local ADdmg = getDmg("AD", minion, myHero, 3)
 					if ADdmg>=minion.health then
 						if GetTickCount() > NextShot then
 							myHero:Attack(minion)
 						end
+					elseif GetDistance(minion)<=rangeQ then
+						local qDmg = getDmg("Q", minion, myHero, 3)
+						if qDmg>=minion.health then
+							CastQ(minion)
+						end
 					end
-				elseif qDmg>=minion.health then
-					CastQ(minion)
+				elseif GetDistance(minion)<=rangeQ then
+					local qDmg = getDmg("Q", minion, myHero, 3)
+					if qDmg>=minion.health then
+						CastQ(minion)
+					end
 				end
 			end
 		end
@@ -349,14 +342,6 @@ function jungleFarm()
 		return
 	end
 end
-function SelectedTarget()
-	local selectedPlayer = GetTarget()
-	if ValidTarget(selectedPlayer) and (selectedPlayer.type =="obj_AI_Minion" or selectedPlayer.type == "obj_AI_Hero") and GetDistance(selectedPlayer)<=killRange then
-		return selectedPlayer
-	else
-		return nil
-	end
-end
 function removeOrbs()
 	if next(orbs)~=nil then
 		for i, obj in pairs(orbs) do
@@ -365,11 +350,6 @@ function removeOrbs()
 				orbCount = orbCount - 1
 			end
 		end
-	end
-end
-function harassKey()
-	if ValidTarget(newTarget) then
-		CastQ(newTarget)
 	end
 end
 function stunComboKey()
@@ -413,7 +393,9 @@ function killTarget(target)
 	if ValidTarget(target) and not IsIgnited() then
 		if Config.teamFight then
 			CastItems(target, true)
-			CastE(target)
+			if not WREADY or GetDistance(target)>rangeW or myHero.maxMana*0.4<=myHero.mana then
+				CastE(target)
+			end
 			CastQ(target)
 			CastW(target)
 		end
@@ -423,7 +405,9 @@ function comboTarget(target)
 	if ValidTarget(target) then
 		if Config.teamFight then
 			CastItems(target, true)
-			CastE(target)
+			if not WREADY or GetDistance(target)>rangeW or myHero.maxMana*0.4<=myHero.mana then
+				CastE(target)
+			end
 			CastQ(target)
 			CastW(target)
 		end
@@ -433,10 +417,11 @@ function harassTarget(target)
 	if ValidTarget(target) then
 		if Config.teamFight then
 			CastItems(target)
-			CastE(target)
+			if not WREADY or GetDistance(target)>rangeW or myHero.maxMana*0.4<=myHero.mana then
+				CastE(target)
+			end
 			CastQ(target)
 			CastW(target)
-			
 		end
 	end
 end
@@ -463,18 +448,18 @@ function CastW(target)
 				if next(orbs)~= nil then
 					for i, obj in pairs(orbs) do
 						if obj.valid then
-							if orbTick == nil or GetTickCount()-orbTick>=900 then
-								if GetDistance(obj)<= rangeW then
-									CastSpell(_W, obj.x, obj.z)
-								else
-									return
-								end
+							if GetDistance(obj)<= rangeW and (orbTick == nil or GetTickCount()-orbTick>=1000) then
+								CastSpell(_W, obj.x, obj.z)
+							else
+								return
 							end
 						else
 							table.remove(orbs, i)
 							orbCount = orbCount - 1
 						end
 					end
+				elseif QREADY then
+					CastQ(target)
 				else
 					local nearestMinion = nil
 					enemyMinion:update()
@@ -507,6 +492,7 @@ function CastW(target)
 				local WPos = tpW:GetPrediction(target)
 				if WPos and GetDistance(WPos)<=rangeW then
 					CastSpell(_W, WPos.x, WPos.z)
+					orbTick = GetTickCount()
 				end
 			end
 		end
@@ -516,7 +502,7 @@ function CastW(target)
 end
 function CastE(target)
 	if not EREADY then return end
-	if ValidTarget(target) then
+	if ValidTarget(target) and (orbTick == nil or GetTickCount()-orbTick>=1000) then
 		if next(orbs)~= nil then
 			for i, obj in pairs(orbs) do
 				if obj.valid then
