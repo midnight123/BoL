@@ -113,7 +113,6 @@ end
 function Target()
 	local currentTarget = nil
 	local killMana = 0
-	local targetSelected = SelectedTarget()
 	if ValidTarget(newTarget) then
 		if GetDistance(newTarget)>killRange then
 			newTarget = nil
@@ -213,7 +212,7 @@ function Target()
 			currentTarget = Enemy
 			if killHim >= currentTarget.health and killMana<= myHero.mana then
 				enemyHeros[i].killable = 3
-				if GetDistance(currentTarget) <= killRange and not targetSelected then
+				if GetDistance(currentTarget) <= killRange then
 					if newTarget == nil then
 						newTarget = currentTarget
 					elseif newTarget.health > killHim then
@@ -231,7 +230,7 @@ function Target()
 				end
 			elseif comboKiller >= currentTarget.health then
 				enemyHeros[i].killable = 2
-				if GetDistance(currentTarget) <= killRange and not targetSelected then
+				if GetDistance(currentTarget) <= killRange then
 					if newTarget == nil then
 						newTarget = currentTarget
 					elseif newTarget.health > comboKiller then
@@ -249,7 +248,7 @@ function Target()
 				end
 			else
 				enemyHeros[i].killable = 1
-				if GetDistance(currentTarget) <= killRange and not targetSelected then
+				if GetDistance(currentTarget) <= killRange then
 					if newTarget == nil then
 						newTarget = currentTarget
 					elseif newTarget.health > comboKiller then
@@ -275,38 +274,6 @@ function Target()
 			end
 		else
 			killable = 0
-		end
-	end
-	if ValidTarget(targetSelected) then
-		newTarget = targetSelected
-		if Config.ultAnytime then
-			if Config.teamFight and not RREADY or rUsed() then
-				CastItems(newTarget, true)
-				CastQ(newTarget)
-				if Config.UseWTeamfight then
-					CastW(newTarget)
-					CastW2(newTarget)
-				end
-				CastE(newTarget)
-				CastR2(newTarget)
-			elseif Config.teamFight then
-				CastR(newTarget)
-			end
-		else
-			local WQCombo = myHero:GetSpellData(_Q).mana + myHero:GetSpellData(_W).mana
-			if Config.teamFight then
-				CastItems(newTarget)
-				CastQ(newTarget)
-				if Config.UseWTeamfight then
-					if WQCombo<=myHero.mana then
-						CastW(newTarget)
-					end
-				end
-				CastE(newTarget)
-			end
-		end
-		if Config.autoE then
-			CastE(newTarget)
 		end
 	end
 end
@@ -353,14 +320,6 @@ function jungleFarm()
 		end
 	else
 		return
-	end
-end
-function SelectedTarget()
-	local selectedPlayer = GetTarget()
-	if ValidTarget(selectedPlayer) and (selectedPlayer.type =="obj_AI_Minion" or selectedPlayer.type == "obj_AI_Hero") and GetDistance(selectedPlayer)<=killRange then
-		return selectedPlayer
-	else
-		return nil
 	end
 end
 function harassKey()
@@ -521,7 +480,13 @@ function CastR(target)
 	if not RREADY then return end
 	if ValidTarget(target) then
 		if GetDistance(target) <= rangeR and RREADY and not rUsed() then
-			CastSpell(_R, target)
+			local qMana = myHero:GetSpellData(_Q).mana
+			local wMana = myHero:GetSpellData(_W).mana
+			local eMana = myHero:GetSpellData(_E).mana
+			local totalMana = qMana + wMana + eMana
+			if QREADY and WREADY and not wUsed() and EREADY and totalMana<=myHero.mana then
+				CastSpell(_R, target)
+			end
 		end
 	else
 		return
