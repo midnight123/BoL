@@ -22,6 +22,8 @@ function LoadMenu()
 	Config:addParam("DrawArrow", "Draw Arrow", SCRIPT_PARAM_ONOFF, true)
 	Config:addParam("moveToMouse", "Move To Mouse", SCRIPT_PARAM_ONOFF, true)
 	Config:addParam("creeps", "Creeps (J)", SCRIPT_PARAM_ONKEYDOWN, false, 74)
+	Config:addParam("useUlt", "Use Ult (U)", SCRIPT_PARAM_ONKEYTOGGLE, true, 85)
+	Config:permaShow("useUlt")
 	Config:permaShow("harass")
 	Config:permaShow("teamFight")
 	Config:permaShow("farm")
@@ -175,7 +177,9 @@ function Target()
 				if GetDistance(Enemy)<=rangeR then
 					killHim = killHim + rdmg
 					if rdmg>=Enemy.health and not IsIgnited() then
-						table.insert(ksDamages, rdmg)
+						if Config.useUlt then
+							table.insert(ksDamages, rdmg)
+						end
 					end
 				end
 			end
@@ -396,7 +400,7 @@ end
 function CastR(target)
 	if not RREADY then return end
 	if ValidTarget(target) then
-		if GetDistance(target) <= rangeR and RREADY then
+		if GetDistance(target) <= rangeR and RREADY and Config.useUlt then
 			local RPos = target
 			if RPos then
 				EnemyPos = Vector(RPos.x, RPos.y, RPos.z)
