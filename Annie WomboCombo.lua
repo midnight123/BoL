@@ -216,8 +216,14 @@ function Target()
 				if GetDistance(currentTarget) <= killRange then
 					if newTarget == nil then
 						newTarget = currentTarget
-					elseif GetDistance(myHero, newTarget) > GetDistance(myHero, currentTarget) then
+					elseif newTarget.health > killHim then
 						newTarget = currentTarget
+					else
+						local currentTargetDmg = currentTarget.health - killHim
+						local newTargetDmg = newTarget.health - killHim
+						if currentTargetDmg < newTargetDmg then
+							newTarget = currentTarget
+						end
 					end
 					if ValidTarget(newTarget) then
 						killTarget(newTarget)
@@ -228,8 +234,14 @@ function Target()
 				if GetDistance(currentTarget) <= killRange then
 					if newTarget == nil then
 						newTarget = currentTarget
-					elseif GetDistance(myHero, newTarget) > GetDistance(myHero, currentTarget) then
+					elseif newTarget.health > comboKiller then
 						newTarget = currentTarget
+					else
+						local currentTargetDmg = currentTarget.health - comboKiller
+						local newTargetDmg = newTarget.health - comboKiller
+						if currentTargetDmg < newTargetDmg then
+							newTarget = currentTarget
+						end
 					end
 					if ValidTarget(newTarget) then
 						comboTarget(newTarget)
@@ -240,16 +252,17 @@ function Target()
 				if GetDistance(currentTarget) <= killRange then
 					if newTarget == nil then
 						newTarget = currentTarget
-					elseif GetDistance(myHero, newTarget) > GetDistance(myHero, currentTarget) then
-						newTarget = currentTarget
+					elseif newTarget.health > comboKiller then
+						local currentTargetDmg = currentTarget.health - comboKiller
+						local newTargetDmg = newTarget.health - comboKiller
+						if currentTargetDmg < newTargetDmg then
+							newTarget = currentTarget
+						end
 					end
 					if ValidTarget(newTarget) then
 						harassTarget(newTarget)
 					end
 				end	
-			end
-			if recall == false and Config.autoE then
-				CastE()
 			end
 		else
 			killable = 0
