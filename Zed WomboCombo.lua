@@ -26,7 +26,9 @@ function LoadMenu()
 	Config:addParam("autoE", "Auto E (T)", SCRIPT_PARAM_ONKEYTOGGLE, true, 84)
 	Config:addParam("UseWHarass", "Use W Harass", SCRIPT_PARAM_ONOFF, true)
 	Config:addParam("UseWTeamfight", "Use W TeamFight", SCRIPT_PARAM_ONOFF, true)
+	Config:addParam("use2ndR", "Use 2nd R (M)", SCRIPT_PARAM_ONKEYTOGGLE, true, 77)
 	Config:permaShow("autoE")
+	Config:permaShow("use2ndR")
 	Config:permaShow("ultAnytime")
 	Config:permaShow("harass")
 	Config:permaShow("teamFight")
@@ -495,7 +497,7 @@ end
 function CastR2(target)
 	if not RREADY then return end
 	if ValidTarget(target) then
-		if rUsed() then
+		if rUsed() and Config.use2ndR then
 			if GetDistance(target)>=250 then
 				CastSpell(_R)
 			end
