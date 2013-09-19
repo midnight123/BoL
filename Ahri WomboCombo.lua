@@ -149,7 +149,6 @@ function Target()
 					killHim = killHim + qdmg
 					if qdmg >=Enemy.health and not IsIgnited() then
 						table.insert(ksDamages, qdmg)
-						ksQDmg = qdmg
 					end
 				end
 			end
@@ -159,7 +158,6 @@ function Target()
 					killHim = killHim + wdmg
 					if wdmg >=Enemy.health and not IsIgnited() then
 						table.insert(ksDamages, wdmg)
-						ksWDmg = wdmg
 					end
 				end
 			end
@@ -169,7 +167,6 @@ function Target()
 					killHim = killHim + edmg
 					if edmg>=Enemy.health and not IsIgnited() then
 						table.insert(ksDamages, edmg)
-						ksEDmg = edmg
 					end
 				end
 			end
@@ -179,7 +176,6 @@ function Target()
 					killHim = killHim + rdmg
 					if rdmg>=Enemy.health and not IsIgnited() then
 						table.insert(ksDamages, rdmg)
-						ksRDmg = rdmg
 					end
 				end
 			end
@@ -219,8 +215,14 @@ function Target()
 				if GetDistance(currentTarget) <= killRange then
 					if newTarget == nil then
 						newTarget = currentTarget
-					elseif GetDistance(myHero, newTarget) > GetDistance(myHero, currentTarget) then
+					elseif newTarget.health > killHim then
 						newTarget = currentTarget
+					else
+						local currentTargetDmg = currentTarget.health - killHim
+						local newTargetDmg = newTarget.health - killHim
+						if currentTargetDmg < newTargetDmg then
+							newTarget = currentTarget
+						end
 					end
 					if ValidTarget(newTarget) then
 						killTarget(newTarget)
@@ -231,8 +233,14 @@ function Target()
 				if GetDistance(currentTarget) <= killRange then
 					if newTarget == nil then
 						newTarget = currentTarget
-					elseif GetDistance(myHero, newTarget) > GetDistance(myHero, currentTarget) then
+					elseif newTarget.health > comboKiller then
 						newTarget = currentTarget
+					else
+						local currentTargetDmg = currentTarget.health - comboKiller
+						local newTargetDmg = newTarget.health - comboKiller
+						if currentTargetDmg < newTargetDmg then
+							newTarget = currentTarget
+						end
 					end
 					if ValidTarget(newTarget) then
 						comboTarget(newTarget)
@@ -243,8 +251,12 @@ function Target()
 				if GetDistance(currentTarget) <= killRange then
 					if newTarget == nil then
 						newTarget = currentTarget
-					elseif GetDistance(myHero, newTarget) > GetDistance(myHero, currentTarget) then
-						newTarget = currentTarget
+					elseif newTarget.health > comboKiller then
+						local currentTargetDmg = currentTarget.health - comboKiller
+						local newTargetDmg = newTarget.health - comboKiller
+						if currentTargetDmg < newTargetDmg then
+							newTarget = currentTarget
+						end
 					end
 					if ValidTarget(newTarget) then
 						harassTarget(newTarget)
