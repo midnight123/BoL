@@ -23,6 +23,8 @@ function LoadMenu()
 	Config:addParam("moveToMouse", "Move To Mouse", SCRIPT_PARAM_ONOFF, true)
 	Config:addParam("creeps", "Creeps (J)", SCRIPT_PARAM_ONKEYDOWN, false, 74)
 	Config:addParam("setUltEnemies", "No. Enemies to Ult", SCRIPT_PARAM_SLICE, 1, 1, 5, 0)
+	Config:addParam("useUlt", "Use Ult", SCRIPT_PARAM_ONKEYTOGGLE, true, 85)
+	Config:permaShow("useUlt")
 	Config:permaShow("setUltEnemies")
 	Config:permaShow("harass")
 	Config:permaShow("teamFight")
@@ -53,7 +55,7 @@ function LoadVIPPrediction()
 	tpW = TargetPredictionVIP(rangeW, math.huge, 0.5)
 end
 function LoadCollisionValues()
-	qcol = Collision(rangeE, 1550, 0.25, 90)
+	qcol = Collision(rangeE, 1550, 0.25, 95)
 end
 function LoadMinions()
 	enemyMinion = minionManager(MINION_ENEMY, rangeQ, player, MINION_SORT_HEALTH_ASC)
@@ -176,7 +178,9 @@ function Target()
 				if GetDistance(Enemy)<=rangeR then
 					killHim = killHim + rdmg
 					if rdmg>=Enemy.health and not IsIgnited() then
-						table.insert(ksDamages, rdmg)
+						if Config.useUlt then
+							table.insert(ksDamages, rdmg)
+						end
 					end
 				end
 			end
@@ -190,7 +194,7 @@ function Target()
 				elseif edmg == lowestKSDmg then
 					CastSpell(_E, Enemy)
 				elseif rdmg == lowestKSDmg then
-					CastR(Enemy)
+					CastSpell(_R, Enemy)
 				end
 				table.clear(ksDamages)
 			end
@@ -368,7 +372,9 @@ function harassTarget(target)
 			CastQ(target)
 			CastW(target)
 			CastE(target)
-			CastR(target)
+			if Config.setUltEnemies > 1 and Config.useUlt then
+				CastR(target)
+			end
 		end
 	end
 end
@@ -411,7 +417,7 @@ end
 function CastR(target)
 	if not RREADY then return end
 	if ValidTarget(target) then
-		if GetDistance(target) <= rangeR and RREADY and EnemiesNearTarget(target, rangeR)>=Config.setUltEnemies then
+		if GetDistance(target) <= rangeR and RREADY and EnemiesNearTarget(target, rangeR)>=Config.setUltEnemies and Config.useUlt then
 			CastSpell(_R, target)
 		end
 	else
