@@ -12,15 +12,17 @@ function OnUnload()
 	PrintFloatText(myHero,2,"Annie WomboCombo UnLoaded!")
 end
 function LoadMenu()
-	Config = scriptConfig("Annie WomboCombo", "Annie WomboCombo")
+	Config = scriptConfig("Annie WomboCombo", " WomboCombo")
 	Config:addParam("harass", "Harass (X)", SCRIPT_PARAM_ONKEYDOWN, false, 88)
 	Config:addParam("teamFight", "TeamFight (SpaceBar)", SCRIPT_PARAM_ONKEYDOWN, false, 32)
 	Config:addParam("farm", "Farm (Z)", SCRIPT_PARAM_ONKEYTOGGLE, false, 90)
 	Config:addParam("DrawCircles", "Draw Circles", SCRIPT_PARAM_ONOFF, true)
 	Config:addParam("DrawArrow", "Draw Arrow", SCRIPT_PARAM_ONOFF, true)
 	Config:addParam("stunText", "Stun Counter", SCRIPT_PARAM_ONOFF, true)
+	Config:addParam("autoE", "Auto E", SCRIPT_PARAM_ONKEYTOGGLE, false, 84)
 	Config:addParam("moveToMouse", "Move To Mouse", SCRIPT_PARAM_ONOFF, true)
 	Config:addParam("creeps", "Creeps (J)", SCRIPT_PARAM_ONKEYDOWN, false, 74)
+	Config:permaShow("autoE")
 	Config:permaShow("harass")
 	Config:permaShow("teamFight")
 	Config:permaShow("farm")
@@ -43,7 +45,7 @@ function LoadVariables()
 end
 function LoadSkillRanges()
 	rangeQ = 625
-	rangeW = 660
+	rangeW = 650
 	rangeE = 660
 	rangeR = 880
 	killRange = 880
@@ -98,7 +100,7 @@ function checkKillRange()
 	if RREADY then
 		killRange = 880
 	elseif WREADY then
-		killRange = 660
+		killRange = 650
 	else
 		killRange = 625
 	end
@@ -178,11 +180,17 @@ function Target()
 				table.sort(ksDamages, function (a, b) return a<b end)
 				local lowestKSDmg = ksDamages[1]
 				if qdmg == lowestKSDmg then
-					CastQ(Enemy)
+					CastSpell(_Q, Enemy)
 				elseif wdmg == lowestKSDmg then
-					CastW(Enemy)
+					local WPos = tpW:GetPrediction(Enemy)
+					if WPos and GetDistance(WPos)<=rangeW then
+						CastSpell(_W, WPos.x, WPos.z)
+					end
 				elseif rdmg == lowestKSDmg then
-					CastR(Enemy)
+					local RPos = tpR:GetPrediction(Enemy)
+					if RPos and GetDistance(RPos)<=rangeR then
+						CastSpell(_R, RPos.x, RPos.z)
+					end
 				end
 				table.clear(ksDamages)
 			end
@@ -240,7 +248,7 @@ function Target()
 					end
 				end	
 			end
-			if recall == false then
+			if recall == false and Config.autoE then
 				CastE()
 			end
 		else
@@ -342,9 +350,12 @@ function killTarget(target)
 			CastItems(target, true)
 			CastQ(target)
 			CastW(target)
+			CastE(target)
 			CastR(target)
 		end
-		CastE(target)
+		if Config.autoE then
+			CastE(target)
+		end
 	end
 end
 function comboTarget(target)
@@ -353,26 +364,41 @@ function comboTarget(target)
 			CastItems(target, true)
 			CastQ(target)
 			CastW(target)
+			CastE(target)
 			CastR(target)
 		end
-		CastE(target)
+		if Config.autoE then
+			CastE(target)
+		end
 	end
 end
 function harassTarget(target)
 	if ValidTarget(target) then
 		if Config.teamFight then
 			CastItems(target)
-			CastQ(target)
-			CastW(target)
+			if QREADY then
+				CastSpell(_Q, target)
+			end
+			if WREADY then
+				local WPos = tpW:GetPrediction(target)
+				if WPos and GetDistance(WPos)<=rangeW then
+					CastSpell(_Q, WPos.x, WPos.z)
+				end
+			end
+			CastE(target)
 		end
-		CastE(target)
+		if Config.autoE then
+			CastE(target)
+		end
 	end
 end
 function CastQ(target)
 	if not QREADY then return end
 	if ValidTarget(target) then
-		if GetDistance(target) <= rangeQ and QREADY and (stunCounter <5 or not RREADY or tibbersOut == true) then
-			CastSpell(_Q, target)
+		if GetDistance(target) <= rangeQ and QREADY then
+			if stunCounter <5 or not RREADY or tibbersOut == true then
+				CastSpell(_Q, target)
+			end
 		end
 	else
 		return
@@ -381,10 +407,12 @@ end
 function CastW(target)
 	if not WREADY then return end
 	if ValidTarget(target) then
-		if GetDistance(target) <= rangeW and WREADY and (stunCounter <5 or not RREADY or tibbersOut == true) then
+		if GetDistance(target) <= rangeW and WREADY then
 			local WPos = tpW:GetPrediction(target)
 			if WPos and GetDistance(WPos)<=rangeW then
-				CastSpell(_W, WPos.x, WPos.z)
+				if stunCounter <5 or not RREADY or tibbersOut == true then
+					CastSpell(_W, WPos.x, WPos.z)
+				end
 			end
 		end
 	else
@@ -395,8 +423,10 @@ function CastE(target)
 	if not EREADY then return end
 	local eMana = myHero:GetSpellData(_Q).mana + myHero:GetSpellData(_E).mana
 	if ValidTarget(target) then
-		if GetDistance(target) <= rangeE and EREADY and (stunCounter <5 or not RREADY or tibbersOut == true) and eMana<myHero.mana then
-			CastSpell(_E)
+		if GetDistance(target) <= rangeE and EREADY and eMana<myHero.mana then
+			if stunCounter <5 or not RREADY or tibbersOut == true then
+				CastSpell(_E)
+			end
 		end
 	elseif stunCounter <5 and eMana<myHero.mana then
 		CastSpell(_E)
@@ -405,10 +435,12 @@ end
 function CastR(target)
 	if not RREADY then return end
 	if ValidTarget(target) then
-		if GetDistance(target) <= rangeR and RREADY and stunCounter == 5 then
+		if GetDistance(target) <= rangeR and RREADY then
 			local RPos = tpR:GetPrediction(target)
 			if RPos and GetDistance(RPos)<=rangeR then
-				CastSpell(_R, RPos.x, RPos.z)
+				if stunCounter == 5 or not RREADY or tibbersOut == true then
+					CastSpell(_R, RPos.x, RPos.z)
+				end
 			end
 		end
 	else
