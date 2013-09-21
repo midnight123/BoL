@@ -19,9 +19,11 @@ function LoadMenu()
 	Config:addParam("DrawCircles", "Draw Circles", SCRIPT_PARAM_ONOFF, true)
 	Config:addParam("DrawArrow", "Draw Arrow", SCRIPT_PARAM_ONOFF, true)
 	Config:addParam("stunText", "Stun Counter", SCRIPT_PARAM_ONOFF, true)
-	Config:addParam("autoE", "Auto E", SCRIPT_PARAM_ONKEYTOGGLE, false, 84)
+	Config:addParam("autoE", "Auto E (T)", SCRIPT_PARAM_ONKEYTOGGLE, false, 84)
 	Config:addParam("moveToMouse", "Move To Mouse", SCRIPT_PARAM_ONOFF, true)
 	Config:addParam("creeps", "Creeps (J)", SCRIPT_PARAM_ONKEYDOWN, false, 74)
+	Config:addParam("useStunFarm", "Use Stun (Farming - (M))", SCRIPT_PARAM_ONKEYTOGGLE, false, 77)
+	Config:permaShow("useStunFarm")
 	Config:permaShow("autoE")
 	Config:permaShow("harass")
 	Config:permaShow("teamFight")
@@ -51,7 +53,7 @@ function LoadSkillRanges()
 	killRange = 880
 end
 function LoadVIPPrediction()
-	tpW = TargetPredictionVIP(rangeW, 2000, 0.25)
+	tpW = TargetPredictionVIP(rangeW, 2000, 0.12)
 	tpR = TargetPredictionVIP(rangeR, 2000, 0.25)
 end
 function LoadMinions()
@@ -327,7 +329,9 @@ function farmKey()
 					if GetTickCount() > NextShot then
 						myHero:Attack(minion)
 					end
-				elseif GetDistance(minion)<=rangeQ and Qdmg>=minion.health and QREADY then
+				elseif GetDistance(minion)<=rangeQ and Qdmg>=minion.health and QREADY and stunCounter<5 then
+					CastQ(minion)
+				elseif stunCounter == 5 and Config.useStunFarm then
 					CastQ(minion)	
 				end
 			end
@@ -395,7 +399,7 @@ function harassTarget(target)
 			if WREADY then
 				local WPos = tpW:GetPrediction(target)
 				if WPos and GetDistance(WPos)<=rangeW then
-					CastSpell(_Q, WPos.x, WPos.z)
+					CastSpell(_W, WPos.x, WPos.z)
 				end
 			end
 			CastE(target)
