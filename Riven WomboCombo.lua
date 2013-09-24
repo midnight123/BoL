@@ -482,7 +482,7 @@ function CastQ(target)
 					NextShot = 0
 				end
 			end
-		elseif GetTickCount()-qTick>=2000 and passiveActive == true then
+		elseif GetTickCount()-qTick>=1000 and passiveActive == true then
 			local QPos = target
 			if ValidTarget(QPos) then
 				local EnemyPos = {x = QPos.x, y = QPos.y, z = QPos.z}
