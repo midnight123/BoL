@@ -22,10 +22,12 @@ function LoadMenu()
 	Config:addParam("moveToMouse", "Move To Mouse", SCRIPT_PARAM_ONOFF, true)
 	Config:addParam("spamQFarm", "Spam Q Whilst Farming", SCRIPT_PARAM_ONOFF, true)
 	Config:addParam("creeps", "Creeps (J)", SCRIPT_PARAM_ONKEYDOWN, false, 74)
+	Config:addParam("escgap", "Escape or Gap Closer (X)", SCRIPT_PARAM_ONKEYDOWN, false, 88)
 	Config:addParam("KsQ", "Ks Q", SCRIPT_PARAM_ONOFF, true)
 	Config:addParam("KsW", "Ks W", SCRIPT_PARAM_ONOFF, true)
 	Config:addParam("KsR", "Ks R", SCRIPT_PARAM_ONOFF, true)
 	Config:permaShow("useUlt")
+	Config:permaShow("escgap")
 	Config:permaShow("teamFight")
 	Config:permaShow("farm")
 	PrintFloatText(myHero,2,"Riven WomboCombo Loaded!")
@@ -91,11 +93,11 @@ function OnTick()
 		execute()
 		orbWalk()
 		jungleFarm()
-		if Config.farm and not Config.teamFight and not Config.harass then
+		if Config.farm and not Config.teamFight and not Config.escgap then
 			farmKey()
 		end
-		if Config.harass then
-			harassKey()
+		if Config.escgap then
+			escgapKey()
 		end
 	end
 end
@@ -338,6 +340,24 @@ function IsIgnited(target)
 		return false
 	end
 end
+function escgapKey()
+	local QPos = mousePos
+	local MPos = {x = QPos.x, y = QPos.y, z = QPos.z}
+	local HeroPos = Vector(myHero.x, myHero.y, myHero.z)
+	if GetDistance(QPos)>375 then
+		local Pos = HeroPos +(HeroPos -MPos)*(-375/GetDistance(QPos))
+		CastSpell(_Q, Pos.x, Pos.z)
+		CastSpell(_E, Pos.x, Pos.z)
+		qTick = GetTickCount()
+		NextShot = 0
+	else
+		local Pos = HeroPos +(HeroPos -MPos)*(-20/GetDistance(QPos))
+		CastSpell(_Q, Pos.x, Pos.z)
+		CastSpell(_E, Pos.x, Pos.z)
+		qTick = GetTickCount()
+		NextShot = 0
+	end
+end
 function farmKey()
 	enemyMinion:update()
 	if next(enemyMinion.objects)~= nil then
@@ -559,7 +579,7 @@ function orbWalk()
 			if GetDistance(newTarget)<=myHero.range +65 and Config.teamFight then
 				myHero:Attack(newTarget)
 			else
-				if Config.teamFight and Config.moveToMouse then
+				if (Config.teamFight or Config.escgap) and Config.moveToMouse then
 					local pos = {x = mousePos.x, y = mousePos.y, z = mousePos.z}
 					local HeroPos = Vector(myHero.x, myHero.y, myHero.z)
 					if GetDistance(mousePos)>175 then
@@ -596,7 +616,7 @@ function orbWalk()
 			end
 		end
 		if not minionRange and not ValidTarget(newTarget) and Config.moveToMouse then
-			if Config.teamFight then
+			if Config.teamFight or Config.escgap then
 				local pos = {x = mousePos.x, y = mousePos.y, z = mousePos.z}
 				local HeroPos = Vector(myHero.x, myHero.y, myHero.z)
 				if GetDistance(mousePos)>175 then
