@@ -39,6 +39,7 @@ function LoadVariables()
 	newTarget = nil
 	wards = {}
 	ulting = false
+	qTick = 0
 end
 function LoadSkillRanges()
 	rangeQ = 675
@@ -414,6 +415,7 @@ function CastQ(target)
 	if ValidTarget(target) then
 		if GetDistance(target) <= rangeQ and QREADY then
 			CastSpell(_Q, target)
+			qTick = GetTickCount()
 		end
 	else
 		return
@@ -422,7 +424,7 @@ end
 function CastW(target)
 	if not WREADY then return end
 	if ValidTarget(target) then
-		if GetDistance(target) <= rangeW and WREADY and (TargetHaveBuff("katarinaqmark", target) or not QREADY) then
+		if GetDistance(target) <= rangeW and WREADY and (TargetHaveBuff("katarinaqmark", target) or (not QREADY and GetTickCount()-qTick>=500))  then
 			CastSpell(_W)
 		end
 	else
@@ -442,7 +444,7 @@ end
 function CastR(target)
 	if not RREADY then return end
 	if ValidTarget(target) then
-		if GetDistance(target) <= rangeR and RREADY then
+		if GetDistance(target) <= rangeR-200 and RREADY then
 			CastSpell(_R)
 		end
 	else
@@ -482,22 +484,34 @@ function orbWalk()
 				if Config.teamFight and Config.moveToMouse and (ulting == false or CountEnemyHeroInRange(rangeR) == 0) then
 					local pos = {x = mousePos.x, y = mousePos.y, z = mousePos.z}
 					local HeroPos = Vector(myHero.x, myHero.y, myHero.z)
-					local movePos = HeroPos +(HeroPos -pos)*(-175/GetDistance(mousePos))
-					myHero:MoveTo(movePos.x, movePos.z)
+					if GetDistance(mousePos)>175 then
+						local movePos = HeroPos +(HeroPos -pos)*(-175/GetDistance(mousePos))
+						myHero:MoveTo(movePos.x, movePos.z)
+					else
+						myHero:MoveTo(mousePos.x, mousePos.z)
+					end
 				end
 			end
 		elseif not ValidTarget(newTarget) and Config.teamFight and Config.moveToMouse and (ulting == false or CountEnemyHeroInRange(rangeR) == 0) then
 			local pos = {x = mousePos.x, y = mousePos.y, z = mousePos.z}
 			local HeroPos = Vector(myHero.x, myHero.y, myHero.z)
-			local movePos = HeroPos +(HeroPos -pos)*(-175/GetDistance(mousePos))
-			myHero:MoveTo(movePos.x, movePos.z)
+			if GetDistance(mousePos)>175 then
+				local movePos = HeroPos +(HeroPos -pos)*(-175/GetDistance(mousePos))
+				myHero:MoveTo(movePos.x, movePos.z)
+			else
+				myHero:MoveTo(mousePos.x, mousePos.z)
+			end
 		end
 	elseif GetTickCount() > aaTime then
 		if Config.teamFight and Config.moveToMouse and (ulting == false or CountEnemyHeroInRange(rangeR) == 0) then
 			local pos = {x = mousePos.x, y = mousePos.y, z = mousePos.z}
 			local HeroPos = Vector(myHero.x, myHero.y, myHero.z)
-			local movePos = HeroPos +(HeroPos -pos)*(-175/GetDistance(mousePos))
-			myHero:MoveTo(movePos.x, movePos.z)
+			if GetDistance(mousePos)>175 then
+				local movePos = HeroPos +(HeroPos -pos)*(-175/GetDistance(mousePos))
+				myHero:MoveTo(movePos.x, movePos.z)
+			else
+				myHero:MoveTo(mousePos.x, mousePos.z)
+			end
 		end
 	end
 end
@@ -530,7 +544,7 @@ function OnDraw()
 end
 
 function OnProcessSpell(unit, spell)
-	if unit.isMe and unit.valid and spell.name:lower():find("attack") and spell.animationTime then
+	if unit.isMe and unit.valid and spell.name:lower():find("attack") and spell.animationTime and spell.windUpTime then
 		aaTime = GetTickCount() + spell.windUpTime * 1000 - GetLatency() / 2 + 10 + 50
 		NextShot = GetTickCount() + spell.animationTime * 1000
 	end
