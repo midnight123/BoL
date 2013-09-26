@@ -660,7 +660,14 @@ function orbWalk()
 				myHero:Attack(newTarget)
 			else
 				if Config.teamFight and Config.moveToMouse then
-					myHero:MoveTo(mousePos.x, mousePos.z)
+					local pos = {x = mousePos.x, y = mousePos.y, z = mousePos.z}
+					local HeroPos = Vector(myHero.x, myHero.y, myHero.z)
+					if GetDistance(mousePos)>175 then
+						local movePos = HeroPos +(HeroPos -pos)*(-175/GetDistance(mousePos))
+						myHero:MoveTo(movePos.x, movePos.z)
+					else
+						myHero:MoveTo(mousePos.x, mousePos.z)
+					end
 				end
 			end
 		elseif not ValidTarget(newTarget) then
@@ -690,16 +697,29 @@ function orbWalk()
 		end
 		if not minionRange and not ValidTarget(newTarget) and Config.moveToMouse then
 			if Config.teamFight then
-				myHero:MoveTo(mousePos.x, mousePos.z)
+				local pos = {x = mousePos.x, y = mousePos.y, z = mousePos.z}
+				local HeroPos = Vector(myHero.x, myHero.y, myHero.z)
+				if GetDistance(mousePos)>175 then
+					local movePos = HeroPos +(HeroPos -pos)*(-175/GetDistance(mousePos))
+					myHero:MoveTo(movePos.x, movePos.z)
+				else
+					myHero:MoveTo(mousePos.x, mousePos.z)
+				end
 			end
 		end
 	elseif GetTickCount() > aaTime then
 		if Config.teamFight and Config.moveToMouse then
-			myHero:MoveTo(mousePos.x, mousePos.z)
+			local pos = {x = mousePos.x, y = mousePos.y, z = mousePos.z}
+			local HeroPos = Vector(myHero.x, myHero.y, myHero.z)
+			if GetDistance(mousePos)>175 then
+				local movePos = HeroPos +(HeroPos -pos)*(-175/GetDistance(mousePos))
+				myHero:MoveTo(movePos.x, movePos.z)
+			else
+				myHero:MoveTo(mousePos.x, mousePos.z)
+			end
 		end
 	end
 end
-
 function OnDraw()
 	if not myHero.dead then
 		if ValidTarget(newTarget) and Config.drawTargetCircle then
