@@ -164,6 +164,18 @@ function Target()
 					if EREADY then
 						ultDamage = ultDamage + edmg*0.2
 					end
+					if GetInventoryItemIsCastable(3128) then  -- DFG      
+						ultDamage = ultDamage + dfgdamage + (ultDamage*0.2)*0.2
+					end
+					if GetInventoryItemIsCastable(3146) then -- Hxg
+						ultDamage = ultDamage + hxgdamage*0.2
+					end
+					if GetInventoryItemIsCastable(3144) then -- bwc
+						ultDamage = ultDamage + bwcdamage*0.2
+					end
+					if GetInventoryItemIsCastable(3153) then -- botrk
+						ultDamage = ultDamage + botrkdamage*0.2
+					end
 				elseif rLevel==2 then
 					maxUltDamage = ADdmg + ((pdmg + qdmg + wdmg + edmg + onhitdmg + onspelldamage + ADdmg)*0.35)
 					ultDamage = ADdmg + ((pdmg + ADdmg + onhitdmg + onspelldamage)*0.35)
@@ -173,6 +185,18 @@ function Target()
 					if EREADY then
 						ultDamage = ultDamage + edmg*0.35
 					end
+					if GetInventoryItemIsCastable(3128) then  -- DFG      
+						ultDamage = ultDamage + dfgdamage + (ultDamage*0.2)*0.35
+					end
+					if GetInventoryItemIsCastable(3146) then -- Hxg
+						ultDamage = ultDamage + hxgdamage*0.35
+					end
+					if GetInventoryItemIsCastable(3144) then -- bwc
+						ultDamage = ultDamage + bwcdamage*0.35
+					end
+					if GetInventoryItemIsCastable(3153) then -- botrk
+						ultDamage = ultDamage + botrkdamage*0.35
+					end
 				elseif rLevel==3 then
 					maxUltDamage = ADdmg + ((pdmg + ADdmg + qdmg + wdmg + edmg + onhitdmg + onspelldamage)*0.5)
 					ultDamage = ADdmg + ((pdmg + ADdmg + onhitdmg + onspelldamage)*0.5)
@@ -181,6 +205,18 @@ function Target()
 					end
 					if EREADY then
 						ultDamage = ultDamage + edmg*0.5
+					end
+					if GetInventoryItemIsCastable(3128) then  -- DFG      
+						ultDamage = ultDamage + dfgdamage + (ultDamage*0.2)*0.5
+					end
+					if GetInventoryItemIsCastable(3146) then -- Hxg
+						ultDamage = ultDamage + hxgdamage*0.5
+					end
+					if GetInventoryItemIsCastable(3144) then -- bwc
+						ultDamage = ultDamage + bwcdamage*0.5
+					end
+					if GetInventoryItemIsCastable(3153) then -- botrk
+						ultDamage = ultDamage + botrkdamage*0.5
 					end
 				else 
 					maxUltDamage = 0
@@ -328,16 +364,17 @@ function Target()
 					end
 				end	
 			end
-			if next(clones)~=nil then
-				for i, obj in pairs(clones) do
-					if obj.valid then
-						if GetDistance(obj, Enemy)<=rangeE and EREADY and (Config.teamFight or Config.harass) and (TargetHaveBuff("zedulttargetmark", Enemy) or not RREADY) then
-							CastSpell(_E)
+			if Config.autoE or Config.teamFight or Config.harass then
+				if next(clones)~=nil then
+					for i, obj in pairs(clones) do
+						if obj.valid then
+							if GetDistance(obj, Enemy)<=rangeE and EREADY and (Config.teamFight or Config.harass) and (TargetHaveBuff("zedulttargetmark", Enemy) or not RREADY) then
+								CastSpell(_E)
+							end
 						end
 					end
 				end
 			end
-			
 		else
 			killable = 0
 		end
@@ -399,6 +436,7 @@ function harassKey()
 		else
 			CastQ(newTarget)
 		end
+		CastE(newTarget)
 	end
 end
 function killTarget(target)
@@ -478,22 +516,14 @@ function CastQ(target)
 		if GetDistance(target) <= rangeQ and QREADY then
 			local QPos = tpQ:GetPrediction(target)
 			if QPos and GetDistance(QPos)<=rangeQ then
-				if GetDistance(target)<=rangeQ/3 then
-					CastSpell(_Q, target.x, target.z)
-				else
-					CastSpell(_Q, QPos.x, QPos.z)
-				end
+				CastSpell(_Q, QPos.x, QPos.z)
 			end
 		elseif next(clones)~=nil and wUsed() then
 			for i, obj in pairs(clones) do
 				if obj.valid then
 					local QPos = tpQC:GetPrediction(target)
 					if QPos and GetDistance(obj, QPos)<=rangeQ then
-						if GetDistance(target)<=rangeQ/3 then
-							CastSpell(_Q, target.x, target.z)
-						else
-							CastSpell(_Q, QPos.x, QPos.z)
-						end
+						CastSpell(_Q, QPos.x, QPos.z)
 					end
 				end
 			end
