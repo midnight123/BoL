@@ -26,6 +26,9 @@ function LoadMenu()
 	Config:addParam("UseWHarass", "Use W Harass", SCRIPT_PARAM_ONOFF, true)
 	Config:addParam("UseWTeamfight", "Use W TeamFight", SCRIPT_PARAM_ONOFF, true)
 	Config:addParam("use2ndR", "Use 2nd R (M)", SCRIPT_PARAM_ONKEYTOGGLE, true, 77)
+	Config:addParam("KsQ", "Ks Q", SCRIPT_PARAM_ONOFF, true)
+	Config:addParam("KsE", "Ks E", SCRIPT_PARAM_ONOFF, true)
+	Config:addParam("KsR", "Ks R", SCRIPT_PARAM_ONOFF, true)
 	Config:permaShow("autoE")
 	Config:permaShow("use2ndR")
 	Config:permaShow("ultAnytime")
@@ -200,7 +203,7 @@ function Target()
 				killMana = killMana + myHero:GetSpellData(_Q).mana
 				if GetDistance(Enemy)<=rangeQ then
 					killHim = killHim + qdmg
-					if qdmg >=Enemy.health and not IsIgnited() then
+					if qdmg >=Enemy.health and not IsIgnited() and Config.KsQ and (TargetHaveBuff("zedulttargetmark", Enemy) or not RREADY) then
 						table.insert(ksDamages, qdmg)
 						
 					end
@@ -212,7 +215,7 @@ function Target()
 			if EREADY then
 				killMana = killMana + myHero:GetSpellData(_E).mana
 				killHim = killHim + edmg
-				if edmg>=Enemy.health and not IsIgnited() then
+				if edmg>=Enemy.health and not IsIgnited() and Config.KsE and (TargetHaveBuff("zedulttargetmark", Enemy) or not RREADY) then
 					table.insert(ksDamages, edmg)
 				end
 			end
@@ -220,7 +223,7 @@ function Target()
 				killMana = killMana + myHero:GetSpellData(_R).mana
 				if GetDistance(Enemy)<=rangeR then
 					killHim = killHim + rdmg
-					if ultDamage>=Enemy.health and not IsIgnited() then
+					if ultDamage>=Enemy.health and not IsIgnited() and Config.KsR and (TargetHaveBuff("zedulttargetmark", Enemy) or not RREADY) then
 						table.insert(ksDamages, ultDamage)
 					end
 				end
@@ -328,7 +331,7 @@ function Target()
 			if next(clones)~=nil then
 				for i, obj in pairs(clones) do
 					if obj.valid then
-						if GetDistance(obj, Enemy)<=rangeE and EREADY and (Config.teamFight or Config.harass) then
+						if GetDistance(obj, Enemy)<=rangeE and EREADY and (Config.teamFight or Config.harass) and (TargetHaveBuff("zedulttargetmark", Enemy) or not RREADY) then
 							CastSpell(_E)
 						end
 					end
@@ -399,7 +402,7 @@ function harassKey()
 	end
 end
 function killTarget(target)
-	if ValidTarget(target) and not IsIgnited() then
+	if ValidTarget(target) and not IsIgnited() and not TargetHaveBuff("zedulttargetmark", target) then
 		if Config.teamFight and not RREADY or rUsed() then
 			CastItems(target, true)
 			CastQ(target)
@@ -418,7 +421,7 @@ function killTarget(target)
 	end
 end
 function comboTarget(target)
-	if ValidTarget(target) and not IsIgnited() then
+	if ValidTarget(target) and not IsIgnited() and not TargetHaveBuff("zedulttargetmark", target) then
 		if Config.teamFight and not RREADY or rUsed() then
 			CastItems(target, true)
 			CastQ(target)
@@ -437,7 +440,7 @@ function comboTarget(target)
 	end
 end
 function harassTarget(target)
-	if ValidTarget(target) then
+	if ValidTarget(target) and not TargetHaveBuff("zedulttargetmark", target) then
 		if Config.ultAnytime then
 			if Config.teamFight and not RREADY or rUsed() then
 				CastItems(target, true)
